@@ -10,14 +10,21 @@
 
 import React, {type PropsWithChildren} from 'react';
 import {
+  View,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   useColorScheme,
+  Image,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
+import EPNSActivity from './components/EPNSActivity';
+import ImageDownloadWithIndicator from './components/ImageDownloadWithIndicator';
+// import ImageDownloadWithIndicator from './components/ImageView';
+
+import Data from './data';
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -28,8 +35,40 @@ const App = () => {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      {/* <EPNSActivity size="small" /> */}
+
       <Text>Hello World React Native</Text>
+
+      <View style={styles.list}>
+        {Data.map(({icon, appbot}, idx) => {
+          let iconURL = icon;
+          if (appbot === '1') {
+            iconURL = require('./components/assets/epnsbot.png');
+          }
+
+          return (
+            <ImageDownloadWithIndicator
+              key={idx}
+              style={styles.appicon}
+              fileURL={appbot ? '' : iconURL}
+              imgsrc={appbot ? iconURL : ''}
+              miniProgressLoader={true}
+              margin={2}
+              resizeMode="cover"
+            />
+          );
+        })}
+      </View>
+
+      <Text>Image Poc ends</Text>
+
+      <Image
+        style={styles.appicon}
+        source={require('./components/assets/epnsbot.png')}
+        resizeMode={'cover'} // cover or contain its upto you view look
+      />
+
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
     </SafeAreaView>
   );
 };
@@ -50,6 +89,20 @@ const styles = StyleSheet.create({
   },
   highlight: {
     fontWeight: '700',
+  },
+  image: {
+    borderColor: 'blue',
+    margin: 1,
+    width: 200,
+    height: 100,
+  },
+  appicon: {
+    width: 60,
+    height: 60,
+  },
+  list: {
+    display: 'flex',
+    flexDirection: 'row',
   },
 });
 
