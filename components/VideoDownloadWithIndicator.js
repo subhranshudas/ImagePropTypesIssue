@@ -1,45 +1,29 @@
-// @ts-nocheck
 import React, {Component} from 'react';
 import {
   StyleSheet,
   View,
   Image,
   TouchableWithoutFeedback,
-  ViewStyle,
+  Text,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
+import Video from 'react-native-video';
+import YouTube from 'react-native-youtube';
 import ProgressCircle from 'react-native-progress-circle';
+
 import EPNSActivity from './EPNSActivity';
 import DownloadHelper from './DownloadHelper';
+
 import GLOBALS from './globals';
 
 const MAX_ATTEMPTS = 3;
 
-type ImageDownloadWithIndicatorProps = {
-  style: ViewStyle;
-  fileURL?: string;
-  imgsrc?: string | boolean;
-  miniProgressLoader?: boolean;
-  margin?: number;
-  resizeMode?: string;
-};
+const YOUTUBE_API_KEY = 'AIzaSyBrzkFPyNmVDFzGY7dKz2HocUO4m-ni-Fc';
 
-type ImageDownloadWithIndicatorPropsState = {
-  indicator: boolean;
-  downloading: boolean;
-  downloadProgress: number;
-  fileURI: string;
-  attemptNumber: number;
-  defaulted: boolean;
-};
-
-export default class ImageDownloadWithIndicator extends Component<
-  ImageDownloadWithIndicatorProps,
-  ImageDownloadWithIndicatorPropsState
-> {
+export default class VideoDownloadWithIndicator extends Component {
   // CONSTRUCTOR
-  constructor(props: ImageDownloadWithIndicatorProps) {
+  constructor(props) {
     super(props);
 
     this.state = {
@@ -51,7 +35,6 @@ export default class ImageDownloadWithIndicator extends Component<
       attemptNumber: 0,
       defaulted: false,
     };
-
     // Set Mounted
     this._isMounted = false;
   }
@@ -86,13 +69,13 @@ export default class ImageDownloadWithIndicator extends Component<
   // FUNCTIONS
   // Check
   checkAndInitiateOperation = async fileURL => {
-    if (this.props.imgsrc) {
-      // Do Nothing, this is already loaded image
+    if (DownloadHelper.isMediaExternalEmbed(fileURL)) {
+      // Do Nothing, this is already loaded media
       this.setState({
         indicator: false,
         downloading: false,
         downloadProgress: '100%',
-        fileURI: this.props.imgsrc,
+        fileURI: fileURL,
       });
 
       return;
@@ -126,7 +109,6 @@ export default class ImageDownloadWithIndicator extends Component<
         await this.startDownload(fileURL);
       } else {
         // Image can't be retrieved, Display bad image
-        console.log('frown face');
         this.setState({
           indicator: false,
           downloading: false,
@@ -185,12 +167,35 @@ export default class ImageDownloadWithIndicator extends Component<
     }
   };
 
-  // RENDER THUMBNAIL
+  // on video bufferring
+  onBuffer = response => {};
+
+  // When Errored
+  videoError = error => {
+    // console.log("Error on playback" + error);
+
+    this.setState({
+      indicator: false,
+      downloading: false,
+      downloadProgress: '100%',
+      fileURI: require('./assets/frownface.png'),
+      defaulted: true,
+    });
+  };
+
+  // handle on press
+  onPress = () => {
+    // console.log("here");
+    this.player.presentFullscreenPlayer();
+
+    if (this.props.onPress) {
+      this.props.onPress();
+    }
+  };
 
   // RENDER
   render() {
-    const {style, imgsrc, miniProgressLoader, margin, resizeMode, onPress} =
-      this.props;
+    const {style, miniProgressLoader, margin, resizeMode} = this.props;
 
     let contentContainerStyle = {};
     if (margin) {
@@ -206,11 +211,9 @@ export default class ImageDownloadWithIndicator extends Component<
       <TouchableWithoutFeedback
         style={[styles.container]}
         onPress={() => {
-          if (onPress) {
-            onPress(this.state.fileURI);
-          }
+          this.onPress(this.state.fileURI);
         }}
-        disabled={!onPress ? true : false}>
+        disabled={true}>
         <View style={[styles.innerContainer, style]}>
           <View style={[styles.contentContainer, contentContainerStyle]}>
             {this.state.indicator ? (
@@ -230,21 +233,40 @@ export default class ImageDownloadWithIndicator extends Component<
                   />
                 )}
               </View>
-            ) : imgsrc !== false || this.state.defaulted === true ? (
+            ) : this.state.defaulted === true ? (
               <Image
                 style={styles.image}
-                source={
-                  this.state.defaulted
-                    ? require('./assets/frownface.png')
-                    : {uri: imgsrc}
-                }
+                source={require('./assets/frownface.png')}
                 resizeMode={modifiedResizeMode}
               />
-            ) : (
-              <Image
-                style={styles.image}
+            ) : DownloadHelper.isMediaExternalEmbed(this.state.fileURI) ===
+              false ? (
+              <Video
                 source={{uri: `${this.state.fileURI}`}}
-                resizeMode={resizeMode}
+                ref={ref => {
+                  this.player = ref;
+                }}
+                onBuffer={this.onBuffer}
+                onError={this.videoError}
+                style={styles.backgroundVideo}
+                resizeMode="cover"
+                controls={true}
+                paused={true}
+                allowFullScreen={true}
+              />
+            ) : (
+              <YouTube
+                videoId={DownloadHelper.getYoutubeID(this.state.fileURI)}
+                apiKey={YOUTUBE_API_KEY}
+                play={false}
+                fullscreen={false}
+                loop={false}
+                controls={1}
+                onReady={e => this.setState({isReady: true})}
+                onChangeState={e => this.setState({status: e.state})}
+                onChangeQuality={e => this.setState({quality: e.quality})}
+                onError={e => this.setState({error: e.error})}
+                style={styles.backgroundVideo}
               />
             )}
           </View>
@@ -261,8 +283,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: '100%',
     overflow: 'hidden',
   },
   contentContainer: {
@@ -279,11 +300,11 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 40,
   },
-  image: {
-    flex: 1,
-    resizeMode: 'cover',
-    width: '100%',
-    height: '100%',
-    overflow: 'hidden',
+  backgroundVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
   },
 });

@@ -24,7 +24,10 @@ import EPNSActivity from './components/EPNSActivity';
 import ImageDownloadWithIndicator from './components/ImageDownloadWithIndicator';
 // import ImageDownloadWithIndicator from './components/ImageView';
 
-import Data from './data';
+import VideoDownloadWithIndicator from './components/VideoDownloadWithIndicator';
+
+import {imageData, videoData} from './data';
+import GLOBALS from './components/globals';
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -40,7 +43,7 @@ const App = () => {
       <Text>Hello World React Native</Text>
 
       <View style={styles.list}>
-        {Data.map(({icon, appbot}, idx) => {
+        {imageData.map(({icon, appbot}, idx) => {
           let iconURL = icon;
           if (appbot === '1') {
             iconURL = require('./components/assets/epnsbot.png');
@@ -55,6 +58,20 @@ const App = () => {
               miniProgressLoader={true}
               margin={2}
               resizeMode="cover"
+            />
+          );
+        })}
+      </View>
+      <Text>-----</Text>
+
+      <View style={styles.list}>
+        {videoData.map((vidUrl, idx) => {
+          return (
+            <VideoDownloadWithIndicator
+              key={idx}
+              style={[styles.msgVid]}
+              fileURL={vidUrl}
+              resizeMode="contain"
             />
           );
         })}
@@ -103,6 +120,11 @@ const styles = StyleSheet.create({
   list: {
     display: 'flex',
     flexDirection: 'row',
+  },
+  msgVid: {
+    borderColor: GLOBALS.COLORS.SLIGHT_GRAY,
+    backgroundColor: GLOBALS.COLORS.SLIGHTER_GRAY,
+    borderBottomWidth: 1,
   },
 });
 
